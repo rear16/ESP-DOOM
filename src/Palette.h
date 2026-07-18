@@ -1,0 +1,19 @@
+#pragma once
+
+#include <Arduino.h>
+#include "WadFile.h"
+
+class Palette
+{
+public:
+
+    bool load(WadFile& wad);
+
+    bool load(const uint8_t *rgb);
+
+    uint16_t color565(uint8_t index) const;
+
+private:
+
+    uint16_t colors[256];
+};
