@@ -508,6 +508,26 @@ void W_ReleaseLumpNum(int lumpnum)
     {
         // Memory-mapped file, so nothing needs to be done here.
     }
+    else if (lump->cache == NULL)
+    {
+        // Nunca se cacheo esta sesion. Vanilla nunca llega aqui porque
+        // el proceso vive una sola vez y todo el estado que "sabe" que
+        // algo esta cargado (mus_playing, demoplayback, etc.) es
+        // coherente con la zone por construccion.
+        //
+        // Aqui Doom se reinicia sin salir del proceso, asi que una
+        // bandera global puede sobrevivir diciendo "esto esta cargado"
+        // cuando la zone que lo respaldaba ya se destruyo y se
+        // recreo desde cero. El indice/nombre del lump sigue siendo
+        // valido -> parece una liberacion normal -> Z_ChangeTag(NULL)
+        // -> crash.
+        //
+        // Ya nos mordio dos veces por caminos distintos (mus_playing
+        // via S_StopMusic, demoplayback via G_CheckDemoStatus). Blindar
+        // aqui cubre esos dos y cualquier otro que no hayamos visto
+        // todavia: liberar algo que nunca se cargo es, como mucho, un
+        // bug de contabilidad, nunca un acceso a memoria invalida.
+    }
     else
     {
         Z_ChangeTag(lump->cache, PU_CACHE);

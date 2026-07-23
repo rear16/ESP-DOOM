@@ -1,13 +1,10 @@
 #pragma once
 
 #include <Arduino.h>
-#include "WadFile.h"
 
 class Palette
 {
 public:
-
-    bool load(WadFile& wad);
 
     bool load(const uint8_t *rgb);
 

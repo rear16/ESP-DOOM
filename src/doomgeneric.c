@@ -9,6 +9,7 @@
 #include "doomgeneric.h"
 #include "i_sound.h"
 #include "s_sound.h"
+#include "g_game.h"
 #include "w_wad.h"
 #include "z_zone.h"
 #include "r_plane.h"
@@ -97,6 +98,8 @@ void doomgeneric_Shutdown (void)
 	// olvida mus_playing y S_music[], que sobreviven a la zone.
 	S_Shutdown ();
 	DG_STEP("audio");
+
+	G_ShutdownDemo ();
 
 	W_Shutdown ();
 	DG_STEP("wad");
