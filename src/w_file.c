@@ -43,7 +43,7 @@ extern wad_file_class_t posix_wad_file;
 
 static wad_file_class_t *wad_file_classes[] = 
 {
-    // Eliminamos &stdc_wad_file porque no existe en la compilación de ESP32
+    // stdc_wad_file removed: it doesn't exist in the ESP32 build.
     &esp32_wad_file,
 };
 

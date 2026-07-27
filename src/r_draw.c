@@ -527,10 +527,11 @@ void R_DrawTranslatedColumnLow (void)
 // Assumes a given structure of the PLAYPAL.
 // Could be read from a lump instead.
 //
-// Mismo caso que lumphash: background_buffer se asigna con Z_Malloc y
-// R_FillBackScreen hace "if (background_buffer != NULL) Z_Free(...)".
-// Al reabrir Doom eso libera memoria de la zone vieja. Aqui solo se
-// olvida el puntero; la memoria se fue con Z_Shutdown.
+// Same case as lumphash: background_buffer is allocated with Z_Malloc,
+// and R_FillBackScreen has an "if (background_buffer != NULL)
+// Z_Free(...)". Reopening Doom would free memory from the old zone.
+// Here we just forget the pointer; the memory went away with
+// Z_Shutdown.
 void R_ShutdownDraw (void)
 {
     background_buffer = NULL;

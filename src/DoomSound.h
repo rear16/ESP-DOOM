@@ -2,18 +2,23 @@
 
 #include <IDoomPCMOutput.h>
 
-// DG_sound_module y DG_music_module son obligatorios: la libreria trae
-// FEATURE_SOUND encendido, asi que si no los defines en ALGUN .cpp del
-// proyecto, el link falla.
+// DG_sound_module and DG_music_module are mandatory: the library ships
+// with FEATURE_SOUND on, so if you don't define them in SOME .cpp of
+// the project, the link fails.
 //
-// Esta es la version "de tarde": 8 canales de SFX mezclados sin EQ ni
-// limitador, musica en silencio (nadie emula OPL aqui). Si tu proyecto
-// necesita mas -- EQ para una bocina chica, limitador, sintetizador de
-// la musica MUS -- el ESP-DOOM del proyecto Ultravice trae esa version
-// completa; este archivo es a proposito mas simple.
+// By default this is the "afternoon project" version: 8 SFX channels
+// mixed with no EQ, no limiter, music silent (nothing emulates OPL
+// here).
 //
-// DG_PCM puede ser nullptr (DOOM_NO_AUDIO en hw_conf.h): en ese caso
-// DoomSound_Init no crea la task y todo lo demas es no-op.
+// If you want real music -- a synthesized MUS score, EQ tuned for a
+// small speaker, a limiter -- define DOOM_MUSIC_SYNTH in your
+// hw_conf.h. That flips this file over to use mus_synth.cpp/.h, which
+// is a separate, self-contained module already proven in the
+// Ultravice project. See mus_synth.h for what it does on its own.
+//
+// DG_PCM can be nullptr (DOOM_NO_AUDIO in hw_conf.h): in that case
+// DoomSound_Init doesn't create the task and everything else is a
+// no-op.
 extern IDoomPCMOutput* DG_PCM;
 
 void DoomSound_Init();

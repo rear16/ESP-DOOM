@@ -60,20 +60,21 @@ void doomgeneric_Create(int argc, char **argv)
 //
 // doomgeneric_Shutdown
 //
-//  Devuelve TODO lo que doomgeneric_Create agarro: ~6.2 MB de PSRAM que
-//  hasta ahora no se soltaban nunca.
+//  Returns ALL the PSRAM doomgeneric_Create grabbed: ~6.2 MB that,
+//  until now, never got released.
 //
-//  EL ORDEN NO ES NEGOCIABLE. Medio Doom guarda punteros que apuntan
-//  dentro de la zone (lumpinfo[].cache, sfxinfo->driver_data, el score
-//  del synth). Si liberas la zone primero, todo eso queda colgando y el
-//  crash no aparece al salir: aparece la SEGUNDA vez que abres Doom.
+//  THE ORDER IS NOT NEGOTIABLE. Half of Doom holds pointers into the
+//  zone (lumpinfo[].cache, sfxinfo->driver_data, the synth's score).
+//  If you free the zone first, all of that is left dangling and the
+//  crash doesn't show up on exit: it shows up the SECOND time you open
+//  Doom.
 //
-//  1. audio  : para la task del mixer (lee samples DE la zone) y suelta
-//              los driver_data
-//  2. wad    : cierra el archivo y suelta lumpinfo
+//  1. audio  : stops the mixer task (it reads samples FROM the zone)
+//              and releases driver_data
+//  2. wad    : closes the file and releases lumpinfo
 //  3. render : visplanes / openings / drawsegs / vissprites
-//  4. pantalla
-//  5. zone   : al final, cuando ya nadie la apunta
+//  4. screen
+//  5. zone   : last, once nothing points into it anymore
 //
 #ifdef ARDUINO
 #define DG_PSRAM_FREE()  heap_caps_get_free_size(MALLOC_CAP_SPIRAM)
@@ -81,7 +82,7 @@ static size_t dg_mark;
 #define DG_STEP(name) \
 	do { \
 		size_t now = DG_PSRAM_FREE(); \
-		printf("[shutdown] %-18s libero %8d bytes\n", name, (int)(now - dg_mark)); \
+		printf("[shutdown] %-18s freed %8d bytes\n", name, (int)(now - dg_mark)); \
 		dg_mark = now; \
 	} while (0)
 #else

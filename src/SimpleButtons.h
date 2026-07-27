@@ -3,9 +3,9 @@
 #include <Arduino.h>
 #include <IDoomInput.h>
 
-// 8 botones sueltos en GPIO con INPUT_PULLUP (activo en bajo). Sin
-// shift register, sin I2C, sin nada que soldar aparte de los propios
-// botones. Los pines salen de hw_conf.h.
+// 8 plain GPIO buttons with INPUT_PULLUP (active low). No shift
+// register, no I2C, nothing to solder besides the buttons themselves.
+// Pins come from hw_conf.h.
 class SimpleButtons : public IDoomInput
 {
 public:
@@ -29,7 +29,7 @@ public:
 
         for (int i = 0; i < 8; i++)
         {
-            // INPUT_PULLUP: presionado = LOW.
+            // INPUT_PULLUP: pressed = LOW.
             bool held = (digitalRead(_pins[i]) == LOW);
 
             if (held) _current |= (1 << i);
@@ -54,10 +54,10 @@ public:
 
 private:
 
-    // OJO: NUNCA llames a este helper 'bit'. Arduino.h define
-    // '#define bit(b) (1UL << (b))' como macro de preprocesador, asi
-    // que cualquier funcion con ese nombre se pisa con ella antes de
-    // que el compilador vea C++ (mismo problema con 'byte'/'word').
+    // WARNING: NEVER name this helper 'bit'. Arduino.h defines
+    // '#define bit(b) (1UL << (b))' as a preprocessor macro, so any
+    // function with that name gets clobbered before the compiler even
+    // sees C++ (same problem with 'byte'/'word').
     static int maskFor(DoomButton b) { return 1 << (int)b; }
 
     uint8_t _pins[8];

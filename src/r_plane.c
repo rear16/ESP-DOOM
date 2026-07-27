@@ -93,9 +93,9 @@ fixed_t			cachedystep[SCREENHEIGHT];
 // R_InitPlanes
 // Only at game startup.
 //
-// Devuelve visplanes (85 KB) y openings (41 KB). Poner los punteros en
-// NULL es obligatorio: R_InitPlanes tiene guardas if(!visplanes) y sin
-// esto reusaria memoria ya liberada al reabrir Doom.
+// Frees visplanes (85 KB) and openings (41 KB). Setting the pointers
+// to NULL is mandatory: R_InitPlanes has if(!visplanes) guards, and
+// without this it would reuse memory already freed when Doom reopens.
 void R_ShutdownPlanes(void)
 {
     if (visplanes) { heap_caps_free(visplanes); visplanes = NULL; }
@@ -111,10 +111,11 @@ void R_InitPlanes(void)
 {
     if (visplanes == NULL)
     {
-        // calloc, NO malloc: R_MakeSpans lee los pads bottom[minx-1] /
-        // bottom[maxx+1], que nadie inicializa nunca. En vanilla visplanes
-        // era un array global (BSS => a cero) y por eso funcionaba. Con
-        // malloc esos pads son basura y si caen en 0xff revientan R_MapPlane.
+        // calloc, NOT malloc: R_MakeSpans reads the bottom[minx-1] /
+        // bottom[maxx+1] pads, which nobody ever initializes. In
+        // vanilla, visplanes was a global array (BSS => zeroed), which
+        // is why it worked. With malloc those pads are garbage, and if
+        // they land on 0xff, R_MapPlane blows up.
         visplanes = (visplane_t*)heap_caps_calloc(
             MAXVISPLANES,
             sizeof(visplane_t),

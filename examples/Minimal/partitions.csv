@@ -1,5 +1,12 @@
+# ESP32-S3, 8 MB flash (an "N8xx" module -- e.g. N8R2, N8R8).
+# This is the DEFAULT partition table for this example: the smallest
+# real flash tier that fits both the firmware and the bundled
+# doom1.wad with real headroom. See README.md, "Flash size and
+# partitions", for why 4 MB (N4) can't work here and how to switch to
+# the 16 MB table if you have an N16 board.
+#
 # Name,   Type, SubType, Offset,  Size, Flags
 nvs,      data, nvs,     0x9000,  0x5000,
 otadata,  data, ota,     0xe000,  0x2000,
-app0,     app,  ota_0,   0x10000, 0x300000,
-spiffs,   data, spiffs,  0x310000,0xCF0000,
+app0,     app,  ota_0,   0x10000, 0x200000,
+spiffs,   data, spiffs,  0x210000,0x5F0000,

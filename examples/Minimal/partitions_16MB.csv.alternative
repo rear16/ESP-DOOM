@@ -1,0 +1,13 @@
+# ESP32-S3, 16 MB flash (an "N16xx" module -- e.g. N16R2, N16R8).
+#
+# NOT active by default: Arduino only picks up a sketch-local partition
+# table if it's literally named "partitions.csv". If you have a 16 MB
+# board, rename this file to "partitions.csv" (replacing the 8 MB one)
+# and set Tools > Flash Size to 16MB. See README.md, "Flash size and
+# partitions".
+#
+# Name,   Type, SubType, Offset,  Size, Flags
+nvs,      data, nvs,     0x9000,  0x5000,
+otadata,  data, ota,     0xe000,  0x2000,
+app0,     app,  ota_0,   0x10000, 0x300000,
+spiffs,   data, spiffs,  0x310000,0xCF0000,

@@ -5,14 +5,15 @@
 #include <IDoomDisplay.h>
 #include "hw_conf.h"
 
-// Con framebuffer intermedio (Arduino_Canvas): writeRow escribe en RAM,
-// endFrame hace el flush() real por SPI de una sola vez. Mas simple y
-// mas tolerante a variaciones de panel, a costa de 320*240*2 = 150 KB
-// de RAM para el canvas (aparte de lo que ya pide Doom).
+// With an intermediate framebuffer (Arduino_Canvas): writeRow writes
+// into RAM, endFrame does the real flush() over SPI in one shot.
+// Simpler and more tolerant of panel variations, at the cost of
+// 320*240*2 = 150 KB of RAM for the canvas (on top of what Doom
+// already needs).
 //
-// AJUSTA AQUI la clase si tu panel no es ILI9341: Arduino_GFX trae
-// Arduino_ST7789, Arduino_ILI9488, etc. con constructores muy
-// parecidos -- revisa la firma exacta en la libreria instalada.
+// ADJUST HERE the class if your panel isn't an ILI9341: Arduino_GFX
+// ships Arduino_ST7789, Arduino_ILI9488, etc. with very similar
+// constructors -- check the exact signature in your installed library.
 class CanvasDisplay : public IDoomDisplay
 {
 public:
@@ -30,10 +31,10 @@ public:
             DOOM_PIN_LCD_CS,
             DOOM_PIN_LCD_SCK,
             DOOM_PIN_LCD_MOSI,
-            -1 /* MISO, no hace falta */);
+            -1 /* MISO, not needed */);
 
-        // AJUSTA AQUI: Arduino_ILI9341 -> tu clase de panel.
-        _gfx = new Arduino_ILI9341(_bus, DOOM_PIN_LCD_RST, 1 /* rotacion landscape */);
+        // ADJUST HERE: Arduino_ILI9341 -> your panel class.
+        _gfx = new Arduino_ILI9341(_bus, DOOM_PIN_LCD_RST, 1 /* landscape rotation */);
 
         _canvas = new Arduino_Canvas(DOOM_PANEL_W, DOOM_PANEL_H, _gfx);
 
@@ -48,13 +49,14 @@ public:
 
     void beginFrame() override
     {
-        // No-op: acumulamos en el canvas, el flush real va en endFrame.
+        // No-op: we accumulate into the canvas, the real flush happens
+        // in endFrame.
     }
 
-    void writeRow(int y, const uint16_t* rgb565, int count) override
+    void writeRow(int x, int y, const uint16_t* rgb565, int count) override
     {
         uint16_t* fb = _canvas->getFramebuffer();
-        fb += (DOOM_VIEWPORT_Y + y) * DOOM_PANEL_W + DOOM_VIEWPORT_X;
+        fb += y * DOOM_PANEL_W + x;
         memcpy(fb, rgb565, count * sizeof(uint16_t));
     }
 

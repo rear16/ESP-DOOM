@@ -150,17 +150,18 @@ void S_Shutdown(void)
     I_ShutdownSound();
     I_ShutdownMusic();
 
-    // mus_playing sobrevive al cierre. Apunta a S_music[], que es un array
-    // global, no memoria de la zone, asi que Z_Shutdown no lo toca y queda
-    // apuntando a la cancion de la sesion anterior.
+    // mus_playing survives shutdown. It points into S_music[], which
+    // is a plain global array, not zone memory, so Z_Shutdown doesn't
+    // touch it and it's left pointing at last session's song.
     //
-    // Su ->lumpnum sigue siendo un indice perfectamente valido. Ese es el
-    // engano: al reabrir, S_ChangeMusic ve mus_playing != NULL y llama a
+    // Its ->lumpnum is still a perfectly valid index. That's the trap:
+    // on reopen, S_ChangeMusic sees mus_playing != NULL and calls
     // S_StopMusic -> W_ReleaseLumpNum(lumpnum) -> Z_ChangeTag(cache).
-    // Pero lumpinfo[] se libero y se recreo desde cero, asi que
-    // lumpinfo[lumpnum].cache es NULL -> Z_ChangeTag(NULL) -> lee en -12.
+    // But lumpinfo[] was freed and rebuilt from scratch, so
+    // lumpinfo[lumpnum].cache is NULL -> Z_ChangeTag(NULL) -> reads at
+    // offset -12.
     //
-    // No hay nada que liberar aqui: solo hay que olvidar.
+    // There's nothing to free here: just forget it.
     mus_playing = NULL;
     mus_paused = 0;
 
@@ -171,8 +172,9 @@ void S_Shutdown(void)
         S_music[i].lumpnum = 0;
     }
 
-    // channels vive en la zone. S_Init lo reasigna sin condicion, pero
-    // dejarlo colgando es pedir el mismo bug de otra forma.
+    // channels lives in the zone. S_Init reassigns it unconditionally,
+    // but leaving it dangling is asking for the same bug in another
+    // shape.
     channels = NULL;
 }
 

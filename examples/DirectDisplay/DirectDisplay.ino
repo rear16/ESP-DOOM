@@ -1,15 +1,15 @@
-// Ejemplo minimo de ESP32-DOOM: pantalla SIN framebuffer intermedio
-// (push directo fila por fila), botones sueltos en GPIO, sin audio por
-// default.
+// Minimal ESP32-DOOM example: display WITHOUT an intermediate
+// framebuffer (direct row-by-row push), plain GPIO buttons, no audio
+// by default.
 //
-// Comparalo con CanvasDisplay/: la unica diferencia real entre los dos
-// ejemplos es DirectDisplay_Display.h vs CanvasDisplay_Display.h. Todo
-// lo demas -- botones, ciclo de vida, audio -- es identico a proposito,
-// para que la comparacion sea justa.
+// Compare it with CanvasDisplay/: the only real difference between the
+// two examples is Display.h's contents (canvas vs. direct push).
+// Everything else -- buttons, lifecycle, audio -- is deliberately
+// identical, so the comparison is fair.
 //
-// Este es el primer paso hacia targets con poca RAM: aqui se ahorra el
-// framebuffer del panel (150 KB), no el zone de Doom (6 MB), que sigue
-// siendo el limite real. Ver Roadmap en el README de la libreria.
+// This is the first step toward low-RAM targets: it saves the panel's
+// framebuffer (150 KB), not Doom's zone (6 MB), which is still the
+// real limit. See the Roadmap in the library's README.
 
 #include <SD.h>
 #include <FS.h>
@@ -39,16 +39,16 @@ void setup()
 {
     Serial.begin(115200);
 
-    // El CS de la SD se fuerza a alto ANTES de tocar la pantalla. Sin
-    // esto, mientras display.begin() ya manda trafico SPI, el CS de la
-    // SD puede quedar flotando y confundir ese trafico con el suyo --
-    // el glitch clasico de compartir bus sin deseleccionar a tiempo.
+    // The SD's CS is forced high BEFORE touching the display. Without
+    // this, while display.begin() is already sending SPI traffic, the
+    // SD's CS can float and mistake that traffic for its own -- the
+    // classic glitch of sharing a bus without deselecting in time.
     pinMode(DOOM_PIN_SD_CS, OUTPUT);
     digitalWrite(DOOM_PIN_SD_CS, HIGH);
 
     if (!display.begin())
     {
-        Serial.println("No pude iniciar la pantalla. Revisa hw_conf.h");
+        Serial.println("Could not start the display. Check hw_conf.h");
         while (true) delay(1000);
     }
 
@@ -56,7 +56,7 @@ void setup()
 
     if (!SD.begin(DOOM_PIN_SD_CS))
     {
-        Serial.println("No pude montar la SD.");
+        Serial.println("Could not mount the SD card.");
         while (true) delay(1000);
     }
 

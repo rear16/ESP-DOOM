@@ -1,9 +1,8 @@
-// Ejemplo minimo de ESP32-DOOM: pantalla CON framebuffer intermedio
-// (Arduino_Canvas), botones sueltos en GPIO, sin multiplexor, sin audio
-// por default. Este .ino es deliberadamente corto: si necesitas mas
-// (EQ para tu bocina, musica sintetizada, un shutdown/restart probado a
-// fondo), mira el proyecto Ultravice, que usa esta misma libreria con
-// una capa de glue mas elaborada.
+// Minimal ESP32-DOOM example: display WITH an intermediate framebuffer
+// (Arduino_Canvas), plain GPIO buttons, no multiplexer, no audio by
+// default. This .ino is deliberately short: if you need more (EQ for
+// your speaker, synthesized music, a thoroughly-tested shutdown/
+// restart cycle), see DOOM_MUSIC_SYNTH in hw_conf.h and src/DoomSound.h.
 
 #include <SD.h>
 #include <FS.h>
@@ -33,16 +32,16 @@ void setup()
 {
     Serial.begin(115200);
 
-    // El CS de la SD se fuerza a alto ANTES de tocar la pantalla. Sin
-    // esto, mientras display.begin() ya manda trafico SPI, el CS de la
-    // SD puede quedar flotando y confundir ese trafico con el suyo --
-    // el glitch clasico de compartir bus sin deseleccionar a tiempo.
+    // The SD's CS is forced high BEFORE touching the display. Without
+    // this, while display.begin() is already sending SPI traffic, the
+    // SD's CS can float and mistake that traffic for its own -- the
+    // classic glitch of sharing a bus without deselecting in time.
     pinMode(DOOM_PIN_SD_CS, OUTPUT);
     digitalWrite(DOOM_PIN_SD_CS, HIGH);
 
     if (!display.begin())
     {
-        Serial.println("No pude iniciar la pantalla. Revisa hw_conf.h");
+        Serial.println("Could not start the display. Check hw_conf.h");
         while (true) delay(1000);
     }
 
@@ -50,7 +49,7 @@ void setup()
 
     if (!SD.begin(DOOM_PIN_SD_CS))
     {
-        Serial.println("No pude montar la SD.");
+        Serial.println("Could not mount the SD card.");
         while (true) delay(1000);
     }
 

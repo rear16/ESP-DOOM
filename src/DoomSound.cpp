@@ -3,6 +3,19 @@
 #include <Arduino.h>
 #include <string.h>
 
+// hw_conf.h lives in the sketch, not the library, but the sketch
+// folder is on the include path for every translation unit Arduino
+// compiles -- including this one. __has_include keeps this file
+// working standalone (no hw_conf.h at all) as well as with any
+// example's hw_conf.h that opts into the full music synth.
+#if __has_include("hw_conf.h")
+#include "hw_conf.h"
+#endif
+
+#ifdef DOOM_MUSIC_SYNTH
+#include <mus_synth.h>
+#endif
+
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <freertos/semphr.h>
@@ -20,18 +33,19 @@ extern "C"
 
 IDoomPCMOutput* DG_PCM = nullptr;
 
-// i_sound.c (el motor generico) declara estas dos como extern y las
-// bindea en I_BindSoundVariables, pero quien las define en Doom
-// original es i_sdlsound.c, que aqui no existe: sin esto no linkea.
-// No resampleamos con libsamplerate (el mixer usa paso fijo 16.16),
-// asi que solo necesitan existir con los defaults de chocolate-doom.
+// i_sound.c (the generic engine) declares these two as extern and
+// binds them in I_BindSoundVariables, but in original Doom they're
+// defined by i_sdlsound.c, which doesn't exist here: without this it
+// won't link. We don't resample with libsamplerate (the mixer uses a
+// fixed 16.16 step), so they only need to exist with chocolate-doom's
+// defaults.
 extern "C"
 {
     int use_libsamplerate = 0;
     float libsamplerate_scale = 0.65f;
 }
 
-static constexpr uint32_t MIX_RATE = 11025;   // nativo de los lumps DMX
+static constexpr uint32_t MIX_RATE = 11025;   // native rate of DMX lumps
 static constexpr size_t MIX_FRAMES = 256;
 static constexpr int MAX_CHANNELS = 8;        // s_sound.c: snd_channels
 
@@ -53,8 +67,9 @@ static TaskHandle_t mixTask = nullptr;
 static volatile bool mixRun = false;
 static doom_boolean sfxPrefix = true;
 
-// Formato DMX: u16 format(3), u16 rate, u32 length (incluye 16+16 de
-// pad), pad[16], samples[length-32] PCM 8bit unsigned, pad[16].
+// DMX format: u16 format(3), u16 rate, u32 length (includes 16+16
+// bytes of padding), pad[16], samples[length-32] 8-bit unsigned PCM,
+// pad[16].
 static SfxData* LoadSfx(sfxinfo_t* sfx)
 {
     if (sfx->driver_data)
@@ -94,9 +109,26 @@ static void MixerTask(void*)
     static int32_t acc[MIX_FRAMES];
     static int16_t out[MIX_FRAMES];
 
+    #ifdef DOOM_MUSIC_SYNTH
+    // MusSynth_Render writes STEREO (2 int32 per frame): it was built
+    // for the full Ultravice mixer, which outputs stereo. DoomSound's
+    // pipeline is deliberately mono (see IDoomPCMOutput.h), so we
+    // render into a scratch stereo buffer and downmix L+R here rather
+    // than touching mus_synth.cpp's internals.
+    static int32_t musicScratch[MIX_FRAMES * 2];
+    #endif
+
     while (mixRun)
     {
         memset(acc, 0, sizeof(acc));
+
+        #ifdef DOOM_MUSIC_SYNTH
+        memset(musicScratch, 0, sizeof(musicScratch));
+        MusSynth_Render(musicScratch, MIX_FRAMES);
+
+        for (size_t i = 0; i < MIX_FRAMES; i++)
+            acc[i] += (musicScratch[i * 2] + musicScratch[i * 2 + 1]) / 2;
+        #endif
 
         xSemaphoreTake(mixLock, portMAX_DELAY);
 
@@ -139,7 +171,11 @@ static doom_boolean DG_SoundInit(doom_boolean use_sfx_prefix)
     memset(channels, 0, sizeof(channels));
 
     if (!DG_PCM)
-        return true;   // DOOM_NO_AUDIO: seguimos "vivos" pero mudos
+        return true;   // DOOM_NO_AUDIO: we stay "alive" but silent
+
+    #ifdef DOOM_MUSIC_SYNTH
+    MusSynth_Init(MIX_RATE);
+    #endif
 
     mixLock = xSemaphoreCreateMutex();
     if (!mixLock) return false;
@@ -158,12 +194,16 @@ static void DG_SoundShutdown(void)
     mixRun = false;
     for (int i = 0; i < 20 && mixTask; i++) vTaskDelay(pdMS_TO_TICKS(10));
 
+    #ifdef DOOM_MUSIC_SYNTH
+    MusSynth_Shutdown();
+    #endif
+
     if (DG_PCM) DG_PCM->end();
 
     if (mixLock) { vSemaphoreDelete(mixLock); mixLock = nullptr; }
 
-    // Ver comentario en el ESP-DOOM completo (Ultravice): driver_data
-    // apunta a la zone. Sin esto, reabrir Doom deja punteros colgando.
+    // driver_data points into the zone. Without this, reopening Doom
+    // leaves dangling pointers behind.
     for (int i = 0; i < NUMSFX; i++)
         S_sfx[i].driver_data = NULL;
 }
@@ -224,7 +264,50 @@ static void DG_CacheSounds(sfxinfo_t*, int) {}
 
 static snddevice_t sound_devices[] = { SNDDEVICE_SB };
 
-// --- Musica: stub en silencio. Nadie emula OPL ni sintetiza MUS aqui. ---
+// --- Music ---
+//
+// By default this is a silent stub: nothing emulates OPL or
+// synthesizes MUS here, which keeps this file small and dependency-free
+// for the "afternoon project" case.
+//
+// If you want real music, define DOOM_MUSIC_SYNTH in your hw_conf.h.
+// That's a pulse/noise chiptune-style synthesizer (no OPL emulation
+// either, but it actually plays the MUS score) already proven in the
+// Ultravice project, plus a 4th-order high-pass filter and a limiter
+// tuned for small speakers -- see mus_synth.cpp for the synth itself
+// and its own comments for why the filter chain looks the way it does.
+#ifdef DOOM_MUSIC_SYNTH
+
+static doom_boolean DG_MusicInit(void) { return true; }
+static void DG_MusicShutdown(void) {}
+static void DG_SetMusicVolume(int volume) { MusSynth_SetVolume(volume); }
+static void DG_PauseMusic(void) { MusSynth_Pause(); }
+static void DG_ResumeMusic(void) { MusSynth_Resume(); }
+
+// S_ChangeMusic caches the lump and hands us the raw MUS data; the
+// pointer stays alive (PU_STATIC) for as long as it's playing, so we
+// don't copy it: the handle IS the same pointer.
+static void* DG_RegisterSong(void* data, int len)
+{
+    if (!MusSynth_Register(data, len))
+        return NULL;
+    return data;
+}
+
+static void DG_UnRegisterSong(void*) { MusSynth_Stop(); }
+
+static void DG_PlaySong(void* handle, doom_boolean looping)
+{
+    if (!handle) return;
+    MusSynth_Play(looping ? true : false);
+}
+
+static void DG_StopSong(void) { MusSynth_Stop(); }
+static doom_boolean DG_MusicIsPlaying(void) { return MusSynth_IsPlaying() ? true : false; }
+static void DG_PollMusic(void) {}
+
+#else
+
 static doom_boolean DG_MusicInit(void) { return true; }
 static void DG_MusicShutdown(void) {}
 static void DG_SetMusicVolume(int) {}
@@ -236,6 +319,8 @@ static void DG_PlaySong(void*, doom_boolean) {}
 static void DG_StopSong(void) {}
 static doom_boolean DG_MusicIsPlaying(void) { return false; }
 static void DG_PollMusic(void) {}
+
+#endif // DOOM_MUSIC_SYNTH
 
 static snddevice_t music_devices[] = { SNDDEVICE_SB };
 
@@ -260,7 +345,7 @@ music_module_t DG_music_module =
 
 void DoomSound_Init()
 {
-    // No-op: DG_SoundInit ya hace el trabajo, S_Init la llama.
-    // Esta funcion existe para que el .ino tenga un punto de entrada
-    // simetrico con DG_PCM, sin tener que saber de sound_module_t.
+    // No-op: DG_SoundInit already does the work, S_Init calls it.
+    // This function exists so the .ino has an entry point symmetric
+    // with DG_PCM, without needing to know about sound_module_t.
 }

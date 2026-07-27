@@ -5,10 +5,10 @@
 #include <string.h>
 
 // ------------------------------------------------------------------
-//  Formato MUS
+//  MUS format
 // ------------------------------------------------------------------
 //
-//  Cabecera:
+//  Header:
 //    char     id[4]        "MUS\x1a"
 //    uint16   scoreLen
 //    uint16   scoreStart
@@ -18,7 +18,7 @@
 //    uint16   dummy
 //    uint16   instruments[instrCnt]
 //
-//  Evento: 1 byte  [last:1][type:3][channel:4]
+//  Event: 1 byte  [last:1][type:3][channel:4]
 //    0 release note      1 byte : note
 //    1 play note         1 byte : [volflag:1][note:7] (+1 byte vol)
 //    2 pitch bend        1 byte
@@ -28,8 +28,8 @@
 //    6 score end         -
 //    7 unused            1 byte
 //
-//  Si el bit 'last' esta puesto, sigue un delay de longitud variable
-//  (7 bits utiles por byte). El score corre a 140 ticks/segundo.
+//  If the 'last' bit is set, a variable-length delay follows (7 usable
+//  bits per byte). The score runs at 140 ticks/second.
 
 static constexpr uint32_t MUS_TICK_HZ = 140;
 
@@ -39,7 +39,7 @@ static constexpr int MUS_PERCUSSION_CHANNEL = 15;
 static constexpr int MAX_VOICES = 16;
 
 // ------------------------------------------------------------------
-//  Estado del secuenciador
+//  Sequencer state
 // ------------------------------------------------------------------
 
 static const uint8_t* score = nullptr;
@@ -59,13 +59,13 @@ static float tickAccum = 0.0f;
 
 static int musicVolume = 96;   // 0-127
 
-// Volumen y bend por canal
+// Per-channel volume and bend
 static uint8_t chanVolume[MUS_CHANNELS];
 static uint8_t chanLastVol[MUS_CHANNELS];
 static float chanBend[MUS_CHANNELS];   // factor multiplicativo
 
 // ------------------------------------------------------------------
-//  Voces
+//  Voices
 // ------------------------------------------------------------------
 
 struct Voice
@@ -85,7 +85,7 @@ struct Voice
     float sustain;
     bool released;
 
-    uint32_t stepEnd;    // destino del barrido, 0 = sin barrido
+    uint32_t stepEnd;    // sweep target, 0 = no sweep
     uint8_t  noiseMix;
     uint8_t  noiseRate;
     uint8_t  noiseCount;
@@ -103,20 +103,20 @@ static volatile uint32_t voiceSteals = 0;
 static volatile int32_t musPeak = 0;
 
 // ------------------------------------------------------------------
-//  Percusion GM
+//  GM percussion
 // ------------------------------------------------------------------
 //
-//  En MUS el canal 15 usa la NOTA para elegir el tambor. Antes lo
-//  ignorabamos y todo sonaba al mismo ruido de 1 segundo.
+//  In MUS, channel 15 uses the NOTE to pick the drum. It used to be
+//  ignored and everything sounded like the same 1-second noise burst.
 //
-//  tone = 0 -> ruido puro. tone > 0 -> pulso a esa frecuencia.
-//  Ojo: el bombo (~90 Hz) no lo va a reproducir la bocina; queda como
-//  click. Es lo que hay con un cono de 20 mm.
+//  tone = 0 -> pure noise. tone > 0 -> pulse at that frequency.
+//  Note: the kick (~90 Hz) won't be reproduced by a small speaker; it
+//  ends up as a click. That's what you get from a 20 mm cone.
 
 struct DrumDef
 {
     uint16_t decayMs;
-    uint16_t tone;      // 0 = sin componente tonal
+    uint16_t tone;      // 0 = no tonal component
     uint16_t toneEnd;   // barrido de altura; 0 = sin barrido
     uint8_t  noiseMix;  // 0-255: cuanto ruido contra tono
     uint8_t  noiseRate; // divisor del LFSR: 1 brillante, >1 oscuro
@@ -126,7 +126,7 @@ static DrumDef GetDrum(int note)
 {
     switch (note)
     {
-        //                 ms  tono  fin  ruido  color
+        //                 ms  tone  end  noise  color
         case 35: case 36: return {  70,  180,  60,   50, 4 };  // bombo
         case 37:          return {  40,  900,   0,  180, 2 };  // side stick
         case 38: case 40: return { 150,  240, 200,  200, 2 };  // caja
@@ -147,7 +147,7 @@ static DrumDef GetDrum(int note)
     }
 }
 
-// decay por muestra para caer a 0.001 en ms milisegundos
+// per-sample decay to reach 0.001 in ms milliseconds
 static inline float DecayForMs(float ms)
 {
     return expf(-6.908f / (ms * 0.001f * (float)sampleRate));
@@ -186,7 +186,7 @@ static int AllocVoice()
             return i;
 
 
-        // Preferimos robar una que ya venga soltada.
+        // We prefer to steal one that's already been released.
         uint32_t age = voices[i].released ? voices[i].age : voices[i].age + 0x40000000;
 
         if (age < oldestAge)
@@ -224,8 +224,8 @@ static void VoiceOn(int channel, int note, int vol)
             ? (uint32_t)(((float)d.tone * 65536.0f) / (float)sampleRate)
             : 0;
 
-        // El barrido de altura es lo que hace que un tambor suene a
-        // tambor y no a bip: el parche se destensa al golpearlo.
+        // The pitch sweep is what makes a drum sound like a drum
+        // instead of a beep: the head detunes as it's struck.
         v.stepEnd = d.toneEnd
             ? (uint32_t)(((float)d.toneEnd * 65536.0f) / (float)sampleRate)
             : 0;
@@ -247,8 +247,8 @@ static void VoiceOn(int channel, int note, int vol)
 
         v.step = (uint32_t)((f * 65536.0f) / (float)sampleRate);
 
-        // Duty distinto por canal: da algo de separacion timbral sin
-        // costar nada. 50%, 25% y 12.5%, como cualquier chip de los 80.
+        // Different duty per channel: gives some timbral separation
+        // for free. 50%, 25% and 12.5%, like any 80s sound chip.
         static const uint32_t duties[3] =
         {
             0x8000 << 0, 0x4000 << 0, 0x2000 << 0
@@ -263,7 +263,7 @@ static void VoiceOn(int channel, int note, int vol)
         v.release = DecayForMs(120.0f);   // era 626 ms: comia voces
     }
 
-    // vol de la nota x volumen del canal
+    // note velocity x channel volume
     float amp = (vol / 127.0f) * (chanVolume[channel] / 127.0f);
 
     v.env = amp;
@@ -277,7 +277,7 @@ static void AllNotesOff()
 }
 
 // ------------------------------------------------------------------
-//  Secuenciador
+//  Sequencer
 // ------------------------------------------------------------------
 
 static void ScoreRewind()
@@ -301,8 +301,8 @@ static void ScoreTick()
         return;
     }
 
-    // Un tick puede traer varios eventos: se procesan hasta que uno
-    // marque 'last' y entregue el delay.
+    // A tick can carry several events: they're processed until one
+    // sets 'last' and hands back the delay.
     for (int guard = 0; guard < 64; guard++)
     {
         if (scorePos >= scoreLen)
@@ -351,8 +351,9 @@ static void ScoreTick()
                 uint8_t b = score[scorePos++];
                 chanBend[chan] = powf(2.0f, ((b - 128) / 64.0f) / 12.0f);
 
-                // Antes el bend solo se aplicaba al disparar la nota, o
-                // sea que no hacia nada. Ahora reafina lo que suena.
+                // The bend used to only apply when the note was
+                // triggered, i.e. it did nothing. Now it retunes
+                // whatever's currently sounding.
                 for (int i = 0; i < MAX_VOICES; i++)
                 {
                     Voice& v = voices[i];
@@ -379,7 +380,7 @@ static void ScoreTick()
                 uint8_t ctrl = score[scorePos++] & 0x7f;
                 uint8_t val = score[scorePos++] & 0x7f;
 
-                if (ctrl == 3)          // volumen de canal
+                if (ctrl == 3)          // channel volume
                     chanVolume[chan] = val;
 
                 break;
@@ -458,15 +459,15 @@ static void RenderVoices(int32_t* acc, size_t frames, size_t offset)
                     v.phase += v.step;
                     tone = ((v.phase & 0xffff) < v.duty) ? 1.0f : -1.0f;
 
-                    // Barrido hacia stepEnd
+                    // Sweep toward stepEnd
                     if (v.stepEnd)
                         v.step += ((int32_t)v.stepEnd - (int32_t)v.step) >> 9;
                 }
 
                 if (v.noiseMix)
                 {
-                    // Sample-and-hold sobre el LFSR: bajar la tasa
-                    // oscurece el ruido. Hi-hat rate 1, caja rate 2.
+                    // Sample-and-hold on the LFSR: lowering the rate
+                    // darkens the noise. Hi-hat rate 1, snare rate 2.
                     if (++v.noiseCount >= v.noiseRate)
                     {
                         v.noiseCount = 0;
@@ -497,7 +498,7 @@ static void RenderVoices(int32_t* acc, size_t frames, size_t offset)
             acc[(offset + n) * 2 + 0] += out;
             acc[(offset + n) * 2 + 1] += out;
 
-            // Envolvente
+            // Envelope
             if (v.released || v.percussion)
             {
                 v.env *= v.percussion ? v.decay : v.release;
@@ -516,12 +517,13 @@ static void RenderVoices(int32_t* acc, size_t frames, size_t offset)
     }
 }
 
-// OJO: esto mide el bus de musica ANTES del EQ. El limitador corre
-// DESPUES del HPF, y como E1M1 vive entera en 82-165 Hz el filtro le
-// quita ~85% antes de que el limitador la vea. O sea que este numero
-// NO sirve para saber si la musica dispara el limitador; para eso
-// mira "lim ... activo %" en el reporte de i_sound_esp32.cpp.
-// Sirve solo para ver el balance melodia/percusion antes de filtrar.
+// NOTE: this measures the music bus BEFORE the EQ. The limiter runs
+// AFTER the HPF, and since E1M1 lives entirely in the 82-165 Hz range,
+// the filter removes ~85% of it before the limiter ever sees it. So
+// this number does NOT tell you whether the music triggers the
+// limiter; for that, look at "lim ... active %" in i_sound_esp32.cpp's
+// report. It's only useful to see the melody/percussion balance
+// before filtering.
 
 static uint32_t lastPeakReport = 0;
 
@@ -540,10 +542,24 @@ static void ReportPeak()
     musPeak = 0;
 }
 
-// Bus propio de musica. Necesario para medir su pico sin que los SFX
-// contaminen la lectura, y deja la puerta abierta a limitarla aparte.
+// Dedicated music bus. Needed to measure its peak without SFX
+// contaminating the reading, and it leaves the door open to limiting
+// it separately.
 static constexpr size_t MUS_MAX_FRAMES = 256;
 static int32_t musBus[MUS_MAX_FRAMES * 2];
+
+// Tempo diagnostic. Reports every ~2 seconds, from inside MusSynth_Render
+// (i.e. from the mixer task, NOT the main loop -- printing from a task
+// pinned to core 0 uses Serial's ISR-safe path in Arduino-ESP32, which
+// is fine, but keep the format terse).
+//
+// At the correct tempo we should see ticks/sec ~= 140.0, and
+// samples/sec ~= sampleRate (11025 by default). If ticks/sec is higher
+// than 140, the score is running faster than the audio clock -- which
+// is exactly the "music sounds sped up" symptom.
+static uint32_t diagSamples = 0;
+static uint32_t diagTicks   = 0;
+static uint32_t diagLastReportMs = 0;
 
 void MusSynth_Render(int32_t* acc, size_t frames)
 {
@@ -557,18 +573,32 @@ void MusSynth_Render(int32_t* acc, size_t frames)
 
     size_t done = 0;
 
+    diagSamples += frames;
+
     while (done < frames)
     {
-        if (tickAccum <= 0.0f)
+        // When tickAccum crosses zero, fire the next MUS event and
+        // credit the sample budget for the tick that just started.
+        while (tickAccum <= 0.0f)
         {
             ScoreTick();
+            diagTicks++;
             tickAccum += samplesPerTick;
 
             if (!playing)
                 break;
         }
 
-        size_t chunk = (size_t)tickAccum;
+        if (!playing)
+            break;
+
+        // Render up to the smaller of: (a) how many samples the current
+        // tick has left, or (b) how many the caller still needs. NOTE
+        // the +0.999f: without it, (size_t)78.75 truncates to 78 and we
+        // silently drop 0.75 samples per tick against the audio clock.
+        // Sustained over a song that's a ~1% tempo drift -- exactly the
+        // "music sounds sped up" symptom.
+        size_t chunk = (size_t)(tickAccum + 0.999f);
 
         if (chunk > frames - done)
             chunk = frames - done;
@@ -579,10 +609,13 @@ void MusSynth_Render(int32_t* acc, size_t frames)
         RenderVoices(musBus, chunk, done);
 
         done += chunk;
+        // Debit the EXACT number of samples rendered, keeping the
+        // fractional part alive across iterations. Losing it here was
+        // the bug.
         tickAccum -= (float)chunk;
     }
 
-    // Medir el pico de la musica sola y sumarla al bus principal.
+    // Measure the music's own peak and add it into the main bus.
     for (size_t i = 0; i < frames * 2; i++)
     {
         int32_t v = musBus[i];
@@ -595,6 +628,24 @@ void MusSynth_Render(int32_t* acc, size_t frames)
     }
 
     ReportPeak();
+
+    // Tempo diagnostic. See comment near diagSamples/diagTicks above.
+    uint32_t nowMs = millis();
+    if (nowMs - diagLastReportMs >= 2000)
+    {
+        uint32_t deltaMs = nowMs - diagLastReportMs;
+        if (diagLastReportMs != 0 && deltaMs > 0)
+        {
+            float ticksPerSec   = (float)diagTicks   * 1000.0f / (float)deltaMs;
+            float samplesPerSec = (float)diagSamples * 1000.0f / (float)deltaMs;
+            Serial.printf(
+                "[musica] tempo: %.1f ticks/s (esperado 140.0) | %.0f samples/s (esperado %u)\n",
+                ticksPerSec, samplesPerSec, (unsigned)sampleRate);
+        }
+        diagLastReportMs = nowMs;
+        diagSamples = 0;
+        diagTicks = 0;
+    }
 }
 
 // ------------------------------------------------------------------

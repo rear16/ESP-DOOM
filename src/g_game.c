@@ -1893,14 +1893,15 @@ G_InitNew
 #define DEMOMARKER		0x80
 
 
-// Estado de demo: son globales planos (no viven en la zone) que dicen
-// "hay una grabacion/reproduccion en curso". Doom vanilla vive un solo
-// proceso, asi que si demoplayback quedo en true nunca importa: el
-// proceso ya se esta cerrando. Aqui Doom se reinicia sin salir, y esa
-// bandera puede sobrevivir diciendo "sigo reproduciendo el demo1 de la
-// sesion pasada" cuando la zone que respaldaba demobuffer ya se
-// destruyo y se recreo. Sin este reset, la siguiente sesion intenta
-// soltar o leer ese estado fantasma (ver W_ReleaseLumpNum en w_wad.c).
+// Demo state: these are plain globals (they don't live in the zone)
+// that say "a recording/playback is in progress". Vanilla Doom lives
+// in a single process, so if demoplayback stayed true it never
+// mattered: the process is already shutting down. Here Doom restarts
+// without exiting, and that flag can survive saying "I'm still
+// playing back last session's demo1" when the zone that backed
+// demobuffer has already been destroyed and recreated. Without this
+// reset, the next session tries to release or read that ghost state
+// (see W_ReleaseLumpNum in w_wad.c).
 void G_ShutdownDemo (void)
 {
     demorecording = false;

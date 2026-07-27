@@ -92,14 +92,15 @@ void Z_ClearZone (memzone_t* zone)
 
 
 //
-// Z_Init
+// Z_Shutdown
 //
-// Libera los ~6 MB de la zone. El unico puntero vivo es mainzone:
-// zonemem es local a I_ZoneBase/AutoAllocMemory.
+// Frees the ~6 MB zone. The only live pointer is mainzone: zonemem is
+// local to I_ZoneBase/AutoAllocMemory.
 //
-// OJO: todo lo cacheado con Z_Malloc/W_CacheLumpNum vive aqui dentro.
-// Quien guarde punteros a la zone (lumpinfo[].cache, sfxinfo->driver_data,
-// el score del synth) debe limpiarlos ANTES de llamar a esto.
+// NOTE: everything cached with Z_Malloc/W_CacheLumpNum lives in here.
+// Whoever holds pointers into the zone (lumpinfo[].cache,
+// sfxinfo->driver_data, the synth's score) must clear them BEFORE
+// calling this.
 void Z_Shutdown (void)
 {
     if (mainzone)

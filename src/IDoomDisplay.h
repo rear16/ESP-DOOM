@@ -2,34 +2,42 @@
 
 #include <stdint.h>
 
-// Contrato minimo entre el glue de doomgeneric y la pantalla.
+// Minimal contract between the doomgeneric glue and the display.
 //
-// Se disenio linea por linea (no "dame el framebuffer entero") a
-// proposito: es el unico contrato que sirve tanto para una pantalla con
-// framebuffer intermedio (Arduino_Canvas: begin/endFrame acumulan, el
-// flush real pasa en endFrame) como para una sin el (push directo por
-// SPI linea por linea, sin doble buffer).
+// Designed row by row (not "give me the whole framebuffer") on
+// purpose: it's the only contract that works both for a display with
+// an intermediate framebuffer (Arduino_Canvas: begin/endFrame
+// accumulate, the actual flush happens in endFrame) and for one
+// without it (direct SPI push row by row, no double buffer).
 //
-// Esa segunda forma es mas barata en RAM -- es el primer paso hacia
-// targets sin PSRAM -- pero hoy sigue sin resolver el zone de 6 MB de
-// Doom, asi que por si sola no corre en un ESP32 classic. Ver el
-// Roadmap del README.
+// That second form is cheaper on RAM -- it's the first step toward
+// PSRAM-less targets -- but today it still doesn't solve Doom's 6 MB
+// zone, so on its own it doesn't run on an ESP32 classic. See the
+// Roadmap in the README.
 class IDoomDisplay
 {
 public:
     virtual bool begin() = 0;
 
-    // Se llama una vez por frame de Doom, antes de la primera writeRow.
-    // Implementacion con canvas: no-op. Sin canvas: abre la ventana de
-    // direccion (setAddrWindow) del area 320x200.
+    // Called once per Doom frame, before the first writeRow.
+    // Canvas implementation: no-op. Without canvas: opens the address
+    // window (setAddrWindow) for the panel area.
     virtual void beginFrame() = 0;
 
-    // 'rgb565' trae 'count' pixeles ya convertidos (paleta de Doom ->
-    // RGB565 la hace el glue, no la pantalla). y va de 0 a height()-1.
-    virtual void writeRow(int y, const uint16_t* rgb565, int count) = 0;
+    // Draw 'count' pixels (already palette-converted to RGB565 by the
+    // glue) starting at panel-absolute column 'x', on panel-absolute
+    // row 'y'.
+    //
+    // This is intentionally dumb: an implementation never needs to
+    // know about rescaling, panning, or cropping. DoomGlue.cpp works
+    // all of that out (see its "Rescale / fill / crop" section and the
+    // README's "Display scaling" section) and always hands you exact,
+    // final panel coordinates and an exact pixel count -- just draw
+    // it, starting there.
+    virtual void writeRow(int x, int y, const uint16_t* rgb565, int count) = 0;
 
-    // Con canvas: aqui pasa el flush() real. Sin canvas: no-op, ya se
-    // escribio todo en writeRow.
+    // With canvas: the real flush() happens here. Without canvas:
+    // no-op, everything was already written in writeRow.
     virtual void endFrame() = 0;
 
     virtual int width() const = 0;

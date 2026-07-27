@@ -5,16 +5,15 @@
 #include <IDoomDisplay.h>
 #include "hw_conf.h"
 
-// Usa la tecnica de framebuffer intermedio (igual que
-// examples/CanvasDisplay/): mas tolerante a variaciones de panel que
-// empujar fila por fila, que es justo lo que este ejemplo minimo
-// necesita para ser lo mas facil posible de hacer arrancar. Si
-// quieres ahorrar esos 150 KB de RAM del framebuffer, mira
-// examples/DirectDisplay/.
+// Uses the intermediate-framebuffer technique (same as
+// examples/CanvasDisplay/): more tolerant of panel variations than
+// pushing row by row, which is exactly what this minimal example needs
+// to be as easy as possible to get running. If you want to save that
+// 150 KB of framebuffer RAM, see examples/DirectDisplay/.
 //
-// AJUSTA AQUI la clase si tu panel no es ILI9341: Arduino_GFX trae
-// Arduino_ST7789, Arduino_ILI9488, etc. con constructores muy
-// parecidos -- revisa la firma exacta en la libreria instalada.
+// ADJUST HERE the class if your panel isn't an ST7789: Arduino_GFX
+// ships Arduino_ILI9341, Arduino_ILI9488, etc. with very similar
+// constructors -- check the exact signature in your installed library.
 class Display : public IDoomDisplay
 {
 public:
@@ -32,13 +31,13 @@ public:
             DOOM_PIN_LCD_CS,
             DOOM_PIN_LCD_SCK,
             DOOM_PIN_LCD_MOSI,
-            -1 /* MISO, no hace falta */);
+            -1 /* MISO, not needed */);
 
-        // AJUSTA AQUI: Arduino_ILI9341 -> tu clase de panel.
-        _gfx = new Arduino_ST7789(_bus, DOOM_PIN_LCD_RST, 1 /* rotacion landscape */);
-        
+        // ADJUST HERE: Arduino_ST7789 -> your panel class.
+        _gfx = new Arduino_ST7789(_bus, DOOM_PIN_LCD_RST, 1 /* landscape rotation */);
+
         _canvas = new Arduino_Canvas(DOOM_PANEL_W, DOOM_PANEL_H, _gfx);
-        
+
         if (!_canvas->begin(8000000))
             return false;
         _gfx->invertDisplay(true);
@@ -50,13 +49,14 @@ public:
 
     void beginFrame() override
     {
-        // No-op: acumulamos en el canvas, el flush real va en endFrame.
+        // No-op: we accumulate into the canvas, the real flush happens
+        // in endFrame.
     }
 
-    void writeRow(int y, const uint16_t* rgb565, int count) override
+    void writeRow(int x, int y, const uint16_t* rgb565, int count) override
     {
         uint16_t* fb = _canvas->getFramebuffer();
-        fb += (DOOM_VIEWPORT_Y + y) * DOOM_PANEL_W + DOOM_VIEWPORT_X;
+        fb += y * DOOM_PANEL_W + x;
         memcpy(fb, rgb565, count * sizeof(uint16_t));
     }
 

@@ -1,11 +1,11 @@
 #pragma once
 
-// Contrato minimo de entrada para los ejemplos. Deliberadamente identico
-// en forma al IInput del proyecto Ultravice (Button + begin/update/
-// pressed/released/down), pero sin depender de un multiplexor: la
-// implementacion de ejemplo (SimpleButtons) lee GPIO directos con
-// INPUT_PULLUP. Si tu hardware usa un HC165 u otra cosa, cambias solo
-// SimpleButtons.*, nunca DoomGlue.
+// Minimal input contract for the examples. Deliberately identical in
+// shape to the Ultravice project's IInput (Button + begin/update/
+// pressed/released/down), but without depending on a multiplexer: the
+// example implementation (SimpleButtons) reads plain GPIO with
+// INPUT_PULLUP. If your hardware uses an HC165 or something else,
+// you only change SimpleButtons.*, never DoomGlue.
 
 enum class DoomButton
 {
@@ -18,9 +18,9 @@ class IDoomInput
 public:
     virtual void begin() = 0;
 
-    // Llamalo una vez por poll: calcula flancos contra la lectura
-    // anterior. DoomGlue ya lo hace por ti, no hace falta llamarlo
-    // aparte.
+    // Call it once per poll: it computes edges against the previous
+    // reading. DoomGlue already does this for you, no need to call it
+    // separately.
     virtual void update() = 0;
 
     virtual bool down(DoomButton button) = 0;

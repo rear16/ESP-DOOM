@@ -3,18 +3,17 @@
 #include <stdint.h>
 #include <stddef.h>
 
-// Contrato minimo de salida de audio para los ejemplos: PCM crudo, nada
-// de reproductor MP3 encima (eso es IAudio en el proyecto Ultravice,
-// pensado para su propio reproductor -- no lo necesitas para correr
-// Doom).
+// Minimal audio output contract for the examples: raw PCM, no MP3
+// player layered on top (that's IAudio in the Ultravice project,
+// meant for its own music player -- you don't need it to run Doom).
 //
-// 'write' recibe samples MONO de 16 bits. Si tu DAC/I2S es estereo,
-// duplica L=R en tu implementacion; es mas simple que forzar a todos a
-// pensar en estereo para un juego que de por si suena mono.
+// 'write' receives MONO 16-bit samples. If your DAC/I2S is stereo,
+// duplicate L=R in your implementation; that's simpler than forcing
+// everyone to think in stereo for a game that's mono to begin with.
 //
-// Si tu placa no tiene audio, define DOOM_NO_AUDIO en hw_conf.h: el
-// glue deja DG_PCM en nullptr y el juego corre mudo, sin tocar este
-// archivo.
+// If your board has no audio, define DOOM_NO_AUDIO in hw_conf.h: the
+// glue leaves DG_PCM as nullptr and the game runs silent, without
+// touching this file.
 class IDoomPCMOutput
 {
 public:

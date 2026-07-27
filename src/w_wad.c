@@ -136,38 +136,38 @@ static void ExtendLumpInfo(int newnumlumps)
 // Other files are single lumps with the base filename
 //  for the lump name.
 
-// Suelta lumpinfo y cierra el WAD. Los lumpinfo[].cache apuntan DENTRO
-// de la zone, asi que no se liberan aqui: se van con Z_Shutdown. Por eso
-// el orden importa (ver doomgeneric_Shutdown).
+// Frees lumpinfo and closes the WAD. The lumpinfo[].cache pointers
+// point INTO the zone, so they're not freed here: they go away with
+// Z_Shutdown. That's why the order matters (see doomgeneric_Shutdown).
 void W_Shutdown (void)
 {
     unsigned int i, j;
 
     for (i = 0; i < numlumps; i++)
     {
-        // Guardar el puntero APARTE es obligatorio, por dos razones:
+        // Saving the pointer SEPARATELY is mandatory, for two reasons:
         //
-        // 1. El slot lumpinfo[i].wad_file es el que vamos a poner en
-        //    NULL. Si lo usamos como valor de comparacion, en cuanto
-        //    j==i lo nulificamos y el resto del loop compara contra
-        //    NULL: ningun otro lump se limpia, y en la siguiente vuelta
-        //    volvemos a cerrar el mismo wad. Los ~2300 lumps de
-        //    doom1.wad comparten UN wad_file -> ~2300 deletes al mismo
-        //    puntero -> heap corrupto.
+        // 1. The lumpinfo[i].wad_file slot is the one we're about to
+        //    set to NULL. If we used it as the comparison value, as
+        //    soon as j==i nulls it, the rest of the loop compares
+        //    against NULL: no other lump gets cleaned up, and on the
+        //    next outer iteration we close the same wad again.
+        //    doom1.wad's ~2300 lumps share ONE wad_file -> ~2300
+        //    deletes on the same pointer -> corrupted heap.
         //
-        // 2. W_CloseFile hace 'delete f'. Despues de llamarlo el
-        //    puntero esta muerto y no sirve ni para comparar.
+        // 2. W_CloseFile does 'delete f'. After calling it the pointer
+        //    is dead and isn't even safe to compare against.
         wad_file_t *wad = lumpinfo[i].wad_file;
 
         if (!wad)
             continue;
 
-        // Primero soltar TODAS las referencias...
+        // First release ALL references...
         for (j = i; j < numlumps; j++)
             if (lumpinfo[j].wad_file == wad)
                 lumpinfo[j].wad_file = NULL;
 
-        // ...y hasta entonces cerrarlo, una sola vez.
+        // ...and only then close it, exactly once.
         W_CloseFile(wad);
     }
 
@@ -179,12 +179,14 @@ void W_Shutdown (void)
 
     numlumps = 0;
 
-    // lumphash vive DENTRO de la zone (Z_Malloc). Al final de W_AddFile
-    // hay un "if (lumphash != NULL) Z_Free(lumphash)". Si no lo ponemos
-    // en NULL, al reabrir Doom eso libera un puntero a la zone anterior
-    // ya destruida: "Z_Free: freed a pointer without ZONEID".
+    // lumphash lives INSIDE the zone (Z_Malloc). At the end of
+    // W_AddFile there's an "if (lumphash != NULL) Z_Free(lumphash)".
+    // If we don't null it, reopening Doom would free a pointer into
+    // the old, already-destroyed zone: "Z_Free: freed a pointer
+    // without ZONEID".
     //
-    // No se libera aqui, se va con Z_Shutdown. Solo hay que olvidarlo.
+    // It's not freed here, it goes away with Z_Shutdown. It just
+    // needs to be forgotten.
     lumphash = NULL;
 }
 
@@ -510,23 +512,23 @@ void W_ReleaseLumpNum(int lumpnum)
     }
     else if (lump->cache == NULL)
     {
-        // Nunca se cacheo esta sesion. Vanilla nunca llega aqui porque
-        // el proceso vive una sola vez y todo el estado que "sabe" que
-        // algo esta cargado (mus_playing, demoplayback, etc.) es
-        // coherente con la zone por construccion.
+        // Never cached this session. Vanilla never reaches here
+        // because the process lives once, and all the state that
+        // "knows" something is loaded (mus_playing, demoplayback,
+        // etc.) is coherent with the zone by construction.
         //
-        // Aqui Doom se reinicia sin salir del proceso, asi que una
-        // bandera global puede sobrevivir diciendo "esto esta cargado"
-        // cuando la zone que lo respaldaba ya se destruyo y se
-        // recreo desde cero. El indice/nombre del lump sigue siendo
-        // valido -> parece una liberacion normal -> Z_ChangeTag(NULL)
-        // -> crash.
+        // Here Doom restarts without exiting the process, so a global
+        // flag can survive saying "this is loaded" when the zone that
+        // backed it was already destroyed and rebuilt from scratch.
+        // The lump's index/name is still valid -> looks like a normal
+        // release -> Z_ChangeTag(NULL) -> crash.
         //
-        // Ya nos mordio dos veces por caminos distintos (mus_playing
-        // via S_StopMusic, demoplayback via G_CheckDemoStatus). Blindar
-        // aqui cubre esos dos y cualquier otro que no hayamos visto
-        // todavia: liberar algo que nunca se cargo es, como mucho, un
-        // bug de contabilidad, nunca un acceso a memoria invalida.
+        // It's already bitten us twice through different paths
+        // (mus_playing via S_StopMusic, demoplayback via
+        // G_CheckDemoStatus). Guarding here covers those two and any
+        // other we haven't seen yet: releasing something that was
+        // never loaded is at worst a bookkeeping bug, never an
+        // invalid memory access.
     }
     else
     {

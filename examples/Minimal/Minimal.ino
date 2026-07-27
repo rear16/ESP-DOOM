@@ -1,11 +1,11 @@
-// El ejemplo mas chico posible de ESP32-DOOM: pantalla, botones, WAD
-// en flash. Sin audio, sin SD, sin nada mas que decidir.
+// The smallest possible ESP32-DOOM example: display, buttons, WAD in
+// flash. No audio, no SD, nothing else to decide.
 //
-// Si necesitas mas -- comparar tecnicas de pantalla (con/sin
-// framebuffer), cargar WADs por SD, tener sonido -- mira
-// examples/CanvasDisplay/ y examples/DirectDisplay/, que parten de
-// este mismo esqueleto y le agregan una cosa a la vez.
-//#define USE_DMA
+// If you need more -- comparing display techniques (with/without a
+// framebuffer), loading WADs from SD, having sound -- see
+// examples/CanvasDisplay/ and examples/DirectDisplay/, which start
+// from this same skeleton and add one thing at a time.
+
 #include <FS.h>
 #include <LittleFS.h>
 
@@ -32,7 +32,7 @@ void setup()
 
     if (!display.begin())
     {
-        Serial.println("No pude iniciar la pantalla. Revisa hw_conf.h");
+        Serial.println("Could not start the display. Check hw_conf.h");
         while (true) delay(1000);
     }
 
@@ -40,7 +40,7 @@ void setup()
 
     if (!LittleFS.begin(true))
     {
-        Serial.println("No pude montar LittleFS. Subiste data/doom1.wad?");
+        Serial.println("Could not mount LittleFS. Did you upload data/doom1.wad?");
         while (true) delay(1000);
     }
 
@@ -51,9 +51,9 @@ void setup()
     display.getCanvas()->fillScreen(0x0000);
     display.getCanvas()->flush();
 
-    // Nada de audio que configurar: DG_PCM se queda en nullptr por
-    // default (lo define DoomSound.cpp, parte de la libreria) y el
-    // juego corre mudo. No hace falta ni un #include para lograrlo.
+    // Nothing audio-related to configure: DG_PCM stays nullptr by
+    // default (it's defined in DoomSound.cpp, part of the library) and
+    // the game runs silent. Not even an #include is needed for that.
 
     DoomGlue_Begin(DOOM_WAD_PATH);
 }
