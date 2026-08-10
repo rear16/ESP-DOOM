@@ -18,22 +18,23 @@
 #define DOOM_PANEL_W       320
 #define DOOM_PANEL_H       240
 
-// Offset where Doom's image lands inside your panel. With a 320x240
-// landscape panel and no rescale (see below), this centers it
-// vertically.
+// Doom always renders at a fixed 320x200; this panel is 240x240. With
+// both DOOM_VIEWPORT_W and DOOM_VIEWPORT_H set, this is CUSTOM mode:
+// independent per-axis stretch to exactly fill the panel (240x240
+// isn't Doom's 320x200 aspect ratio, so this squashes vertically --
+// that's the expected tradeoff for a screen this shape). See
+// DoomGlue.cpp's "Rescale / fill / crop" section for the other two
+// modes (native, and width-driven fill that preserves aspect ratio),
+// and the README's "Display scaling" section for a plainer walkthrough.
 //
-// This example doesn't rescale: with DOOM_VIEWPORT_W/H left undefined,
-// content is Doom's native 320x200 and X/Y just place it. If your
-// panel is a different size, hw_conf.h can also declare
-// DOOM_VIEWPORT_W/H to rescale (three modes: native / width-driven
-// fill / independent-axis custom stretch) -- see
-// examples/Minimal/hw_conf.h for a worked example, and DoomGlue.cpp's
-// "Rescale / fill / crop" section for the full explanation. When
-// content ends up bigger than the panel on some axis, X/Y switch
-// meaning on that axis: instead of placing the content, they pick a
-// fixed crop origin into it.
+// This used to be a real bug: without an explicit viewport, writeRow
+// got called with 320 pixels per row against a 240-wide canvas, an
+// out-of-bounds write into the next row's memory. Declaring the
+// viewport is what fixes it, not a clamp somewhere downstream.
+#define DOOM_VIEWPORT_W    320
+#define DOOM_VIEWPORT_H    240
 #define DOOM_VIEWPORT_X    0
-#define DOOM_VIEWPORT_Y    20
+#define DOOM_VIEWPORT_Y    0
 
 // --- Input: 8 plain buttons, INPUT_PULLUP (active low) ---
 #define DOOM_PIN_BTN_UP     4
