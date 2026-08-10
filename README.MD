@@ -1,4 +1,4 @@
-# ESP32-DOOM
+# ESP-DOOM
 
 A port of the Doom engine (via [doomgeneric](https://github.com/ozkl/doomgeneric))
 to ESP32/Arduino, with its own audio mixer (a plain SFX-only mixer by

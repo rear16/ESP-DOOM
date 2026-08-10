@@ -34,13 +34,13 @@ public:
             -1 /* MISO, not needed */);
 
         // ADJUST HERE: Arduino_ST7789 -> your panel class.
-        _gfx = new Arduino_ST7789(_bus, DOOM_PIN_LCD_RST, 1 /* landscape rotation */);
+        _gfx = new Arduino_ST7735(_bus, DOOM_PIN_LCD_RST, 3, true, DOOM_PANEL_H, DOOM_PANEL_W, 26, 1, 26, 1);
 
         _canvas = new Arduino_Canvas(DOOM_PANEL_W, DOOM_PANEL_H, _gfx);
 
-        if (!_canvas->begin(8000000))
+        if (!_canvas->begin(4000000))
             return false;
-        _gfx->invertDisplay(true);
+        _gfx->invertDisplay(false);
         _canvas->fillScreen(0x0000);
         _canvas->flush();
 

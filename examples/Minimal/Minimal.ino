@@ -1,4 +1,4 @@
-// The smallest possible ESP32-DOOM example: display, buttons, WAD in
+// The smallest possible ESP-DOOM example: display, buttons, WAD in
 // flash. No audio, no SD, nothing else to decide.
 //
 // If you need more -- comparing display techniques (with/without a
@@ -35,19 +35,20 @@ void setup()
         Serial.println("Could not start the display. Check hw_conf.h");
         while (true) delay(1000);
     }
-
+    Serial.println("Display Done");
     input.begin();
-
+    Serial.println("Input Done");
+    
     if (!LittleFS.begin(true))
     {
         Serial.println("Could not mount LittleFS. Did you upload data/doom1.wad?");
         while (true) delay(1000);
     }
-
+    Serial.println("Storage Done");
     DG_FS = &LittleFS;
     DG_Display = &display;
     DG_Input = &input;
-
+    
     display.getCanvas()->fillScreen(0x0000);
     display.getCanvas()->flush();
 

@@ -1,4 +1,4 @@
-// Minimal ESP32-DOOM example: display WITHOUT an intermediate
+// Minimal ESP-DOOM example: display WITHOUT an intermediate
 // framebuffer (direct row-by-row push), plain GPIO buttons, no audio
 // by default.
 //

@@ -1,4 +1,4 @@
-// Minimal ESP32-DOOM example: display WITH an intermediate framebuffer
+// Minimal ESP-DOOM example: display WITH an intermediate framebuffer
 // (Arduino_Canvas), plain GPIO buttons, no multiplexer, no audio by
 // default. This .ino is deliberately short: if you need more (EQ for
 // your speaker, synthesized music, a thoroughly-tested shutdown/

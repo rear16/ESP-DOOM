@@ -14,8 +14,8 @@
 #define DOOM_PIN_LCD_MOSI  11
 #define DOOM_PIN_LCD_BLK   -1   // -1 if your panel has no backlight control
 
-#define DOOM_PANEL_W       240
-#define DOOM_PANEL_H       240
+#define DOOM_PANEL_W       160
+#define DOOM_PANEL_H       80
 
 // Doom always renders at a fixed 320x200; this panel is 240x240. With
 // both DOOM_VIEWPORT_W and DOOM_VIEWPORT_H set, this is CUSTOM mode:
@@ -30,8 +30,8 @@
 // got called with 320 pixels per row against a 240-wide canvas, an
 // out-of-bounds write into the next row's memory. Declaring the
 // viewport is what fixes it, not a clamp somewhere downstream.
-#define DOOM_VIEWPORT_W    240
-#define DOOM_VIEWPORT_H    240
+#define DOOM_VIEWPORT_W    160
+#define DOOM_VIEWPORT_H    80
 #define DOOM_VIEWPORT_X    0
 #define DOOM_VIEWPORT_Y    0
 
